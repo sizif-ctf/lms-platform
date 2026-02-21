@@ -6,14 +6,15 @@ import { createProfile, getProfile } from "@/lib/db"
 import { setSession, clearSession } from "@/lib/session"
 import { Role } from "@/types"
 
+import { prisma } from "@/lib/prisma"
+
 export async function login(formData: FormData) {
     const email = formData.get("email") as string
     const password = formData.get("password") as string // In a real app we'd verify this
 
-    // Mock finding user by email
-    // Let's hack into the mock DB using global
-    const profiles = global._mockDb?.profiles || []
-    const user = profiles.find(p => p.email === email)
+    const user = await prisma.profile.findUnique({
+        where: { email }
+    })
 
     if (!user) {
         return { error: "Неверный email или пароль. (Демо: зарегистрируйтесь сначала)" }
@@ -29,8 +30,11 @@ export async function register(formData: FormData) {
     const role = formData.get("role") as Role
     const password = formData.get("password") as string
 
-    const profiles = global._mockDb?.profiles || []
-    if (profiles.find(p => p.email === email)) {
+    const existingUser = await prisma.profile.findUnique({
+        where: { email }
+    })
+
+    if (existingUser) {
         return { error: "Пользователь с таким email уже существует" }
     }
 
